@@ -278,13 +278,17 @@ class Trainer(Solver):
 
             # Save model by val er.
             if val_cer/val_len  < self.best_val_ed:
+                step_ckpdir = os.path.join(self.ckpdir, f'step_{self.step}')
+                
+                os.mkdir(step_ckpdir)
+
                 self.best_val_ed = val_cer/val_len
                 self.verbose('Best val er       : {:.4f}       @ step {}'.format(self.best_val_ed,self.step))
-                torch.save(self.asr_model, os.path.join(self.ckpdir,'asr'))
+                torch.save(self.asr_model, os.path.join(step_ckpdir,'asr'))
                 if self.apply_clm:
-                    torch.save(self.clm.clm,  os.path.join(self.ckpdir,'clm'))
+                    torch.save(self.clm.clm,  os.path.join(step_ckpdir,'clm'))
                 # Save hyps.
-                with open(os.path.join(self.ckpdir,'best_hyp.txt'),'w') as f:
+                with open(os.path.join(step_ckpdir,'best_hyp.txt'),'w') as f:
                     for t1,t2 in zip(all_pred,all_true):
                         f.write(t1+','+t2+'\n')
 

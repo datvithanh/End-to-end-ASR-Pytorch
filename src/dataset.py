@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 from src.preprocess import zero_padding,target_padding
 import pandas as pd
+from python_speech_features import logfbank
+import scipy.io.wavfile as wav
 
 # TODO : Move this to config
 HALF_BATCHSIZE_TIME=800
@@ -69,6 +71,7 @@ class LibriDataset(Dataset):
 
         X = self.table['file_path'].tolist()
         X_lens = self.table['length'].tolist()
+        
             
         Y = [list(map(int, label.split('_'))) for label in self.table['label'].tolist()]
         if text_only:
@@ -79,7 +82,7 @@ class LibriDataset(Dataset):
         self.Y = []
         tmp_x,tmp_len,tmp_y = [],[],[]
 
-        for x,x_len,y in zip(X,X_lens,Y):
+        for x,x_len,y in zip(X, X_lens, Y):
             tmp_x.append(x)
             tmp_len.append(x_len)
             tmp_y.append(y)
@@ -97,7 +100,14 @@ class LibriDataset(Dataset):
         if len(tmp_x)>0:
             self.X.append(tmp_x)
             self.Y.append(tmp_y)
-
+    
+    def wav2logfbank(self, wav_path):
+        # TODO: move winsize and nfilter to config
+        win_size = 0.025
+        n_filters= 40
+        (rate, sig) = wav.read(wav_path)
+        fbank_feat = logfbank(sig,rate,winlen=win_size,nfilt=n_filters)
+        return fbank_feat
 
     def __getitem__(self, index):
         # Load label
@@ -107,7 +117,8 @@ class LibriDataset(Dataset):
             return y
         
         # Load acoustic feature and pad
-        x = [torch.FloatTensor(np.load(os.path.join(self.root,f))) for f in self.X[index]]
+        #x = [torch.FloatTensor(np.load(os.path.join(self.root,f))) for f in self.X[index]]
+        x = [torch.FloatTensor(self.wav2logfbank(f)) for f in self.X[index]]
         x = pad_sequence(x, batch_first=True)
         return x,y
             
